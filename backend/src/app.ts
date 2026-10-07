@@ -30,6 +30,10 @@ app.get("/api/v1/health-check", (req: Request, res: Response) => {
   });
 });
 
+import authRouter from "./modules/auth/auth.route.js";
+
+app.use("/api/v1/auth", authRouter);
+
 // Global error for unknown routes
 app.use((req: Request, res: Response, next: NextFunction) => {
   next(new AppError(`Can;t find ${req.originalUrl} on this server`, 404));
