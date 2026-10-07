@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// User Register Schema
 export const registerUserSchema = z
   .object({
     email: z.email("Invalid email").trim().toLowerCase(),
@@ -15,4 +16,13 @@ export const registerUserSchema = z
   })
   .strict();
 
+// User Login Schema
+export const loginUserSchema = z
+  .object({
+    email: z.email("Invalid email").trim().toLowerCase(),
+    password: z.string(),
+  })
+  .strict();
+
 export type registerUserDTO = z.infer<typeof registerUserSchema>;
+export type loginUserDTO = z.infer<typeof loginUserSchema>;

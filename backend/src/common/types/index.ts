@@ -3,3 +3,8 @@ export type ApiResponse<T> = {
   message: string;
   data?: T;
 };
+
+export type JWTPayload = {
+  sub: string;
+  sessionId: string;
+};

@@ -1,14 +1,24 @@
-import { hashPassword } from "../../common/auth/password.js";
+import ms, { StringValue } from "ms";
+import { generateSessionId } from "../../common/auth/auth.helper.js";
+import { comparePassword, hashPassword } from "../../common/auth/password.js";
 import { AppError } from "../../common/errors/AppError.js";
 import { IAuthRepository } from "./auth.interface.js";
 import { sanitizeUserResponse } from "./auth.response.js";
 import { CreateUserType } from "./auth.types.js";
+import { env } from "../../config/env.config.js";
+import { signAccessToken, signRefreshToken } from "../../common/auth/Jwt.js";
+import { hashRefreshToken } from "../../common/auth/token.js";
 
 export class AuthService {
   constructor(private authRepo: IAuthRepository) {}
 
-  async registerUser(data: { email: string; password: string }) {
-    const { email, password } = data;
+  async registerUser(data: {
+    email: string;
+    password: string;
+    userAgent?: string;
+    ipAddress?: string;
+  }) {
+    const { email, password, userAgent, ipAddress } = data;
     const existingUser = await this.authRepo.findUserByEmail(email);
 
     if (existingUser) {
@@ -25,6 +35,57 @@ export class AuthService {
       payload as CreateUserType,
     );
 
-    return sanitizeUserResponse(createdUser);
+    return await this.loginUser({ email, password, userAgent, ipAddress });
+  }
+
+  async loginUser(data: {
+    email: string;
+    password: string;
+    userAgent?: string;
+    ipAddress?: string;
+  }) {
+    const { email, password, userAgent, ipAddress } = data;
+
+    const existingUser = await this.authRepo.findUserByEmail(email);
+
+    if (!existingUser) {
+      throw new AppError("Invalid credentials", 401);
+    }
+
+    const isPasswordCorrect = await comparePassword(
+      password,
+      existingUser?.passwordHash as string,
+    );
+
+    if (!isPasswordCorrect) {
+      throw new AppError("Invalid credentials", 401);
+    }
+
+    const sessionId = generateSessionId();
+
+    const tokenPayload = {
+      sub: existingUser.id,
+      sessionId,
+    };
+    const accessToken = signAccessToken(tokenPayload);
+    const refreshToken = signRefreshToken(tokenPayload);
+    const hashedRefreshToken = hashRefreshToken(refreshToken);
+    const expiresAt = new Date(
+      Date.now() + ms(env.REFRESH_TOKEN_EXPIRES as StringValue),
+    );
+
+    await this.authRepo.createSession({
+      userId: existingUser.id,
+      refreshTokenHash: hashedRefreshToken,
+      userAgent: userAgent,
+      ipAddress: ipAddress,
+      expiresAt,
+    });
+
+    return {
+      user: sanitizeUserResponse(existingUser),
+      accessToken,
+      refreshToken,
+    };
   }
 }
