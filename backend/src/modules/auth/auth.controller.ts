@@ -4,6 +4,7 @@ import authService from "./auth.container.js";
 import { sendResponse } from "../../common/helpers/AppResponse.js";
 import { setCookies } from "../../common/auth/auth.helper.js";
 import { userType } from "./auth.types.js";
+import { AppError } from "../../common/errors/AppError.js";
 
 export const registerUserController = CatchAsync(
   async (req: Request, res: Response) => {
@@ -66,6 +67,28 @@ export const loggedInUserController = CatchAsync(
       success: true,
       message: "User fetched successfullt",
       data: result,
+    });
+  },
+);
+
+export const refreshTokenController = CatchAsync(
+  async (req: Request, res: Response) => {
+    const refreshToken = req.cookies.refreshToken;
+    const userAgent = req.headers["user-agent"] || "unknown";
+    const ipAddress = req.ip || "unknown";
+
+    const result = await authService.refreshSession(
+      refreshToken,
+      userAgent,
+      ipAddress,
+    );
+
+    setCookies(res, result.refreshToken);
+
+    sendResponse(res, 201, {
+      success: true,
+      message: "Refresh token rotated successfully",
+      data: { user: result.user, accessToken: result.accessToken },
     });
   },
 );

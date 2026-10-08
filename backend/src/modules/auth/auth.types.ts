@@ -4,6 +4,7 @@ export type CreateUserType = {
 };
 
 export type createSessionType = {
+  id: string;
   userId: string;
   refreshTokenHash: string;
   userAgent?: string;
@@ -20,4 +21,9 @@ export type finUserById = {
   id: string;
   email: string;
   createdAt: Date;
+};
+
+export type updatedSessionType = {
+  refreshTokenHash: string;
+  expiresAt: Date;
 };
