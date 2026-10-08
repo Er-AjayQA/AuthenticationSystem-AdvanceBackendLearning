@@ -4,9 +4,9 @@ import { comparePassword, hashPassword } from "../../common/auth/password.js";
 import { AppError } from "../../common/errors/AppError.js";
 import { IAuthRepository } from "./auth.interface.js";
 import { sanitizeUserResponse } from "./auth.response.js";
-import { CreateUserType } from "./auth.types.js";
+import { CreateUserType, userType } from "./auth.types.js";
 import { env } from "../../config/env.config.js";
-import { signAccessToken, signRefreshToken } from "../../common/auth/Jwt.js";
+import { signAccessToken, signRefreshToken } from "../../common/auth/jwt.js";
 import { hashRefreshToken } from "../../common/auth/token.js";
 
 export class AuthService {
@@ -87,5 +87,15 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  async getLoggedInUser(data: userType) {
+    const user = await this.authRepo.findUserById(data.userId);
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    return user;
   }
 }

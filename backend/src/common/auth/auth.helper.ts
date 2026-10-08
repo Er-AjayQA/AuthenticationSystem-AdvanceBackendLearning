@@ -25,6 +25,6 @@ export const setCookies = (res: Response, refreshToken: string) => {
     secure: env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: refreshTokenMaxAge,
-    path: "/",
+    // path: "/api/v1/auth/refresh",
   });
 };

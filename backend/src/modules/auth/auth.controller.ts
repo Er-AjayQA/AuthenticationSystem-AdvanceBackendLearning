@@ -3,6 +3,7 @@ import { CatchAsync } from "../../common/helpers/CatchAsync.js";
 import authService from "./auth.container.js";
 import { sendResponse } from "../../common/helpers/AppResponse.js";
 import { setCookies } from "../../common/auth/auth.helper.js";
+import { userType } from "./auth.types.js";
 
 export const registerUserController = CatchAsync(
   async (req: Request, res: Response) => {
@@ -52,6 +53,19 @@ export const loginUserController = CatchAsync(
         user: result.user,
         accessToken: result.accessToken,
       },
+    });
+  },
+);
+
+export const loggedInUserController = CatchAsync(
+  async (req: Request, res: Response) => {
+    const user = req.user as userType;
+    const result = await authService.getLoggedInUser(user);
+
+    sendResponse(res, 200, {
+      success: true,
+      message: "User fetched successfullt",
+      data: result,
     });
   },
 );

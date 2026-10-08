@@ -20,6 +20,11 @@ export const globalErrorHandler = (
 
   //   For Develpment Environment
   if (env.NODE_ENV === "development") {
+    logger.error({
+      message: error.message,
+      stack: err.stack,
+    });
+
     return res.status(error.statusCode).json({
       status: error.status,
       message: error.message,
@@ -30,6 +35,11 @@ export const globalErrorHandler = (
 
   // For Production Environment
   if (error.isOperational) {
+    logger.error({
+      status: error.status,
+      message: error.message,
+    });
+
     return res.status(error.statusCode).json({
       status: error.status,
       message: error.message,

@@ -10,3 +10,14 @@ export type createSessionType = {
   ipAddress?: string;
   expiresAt: Date;
 };
+
+export type userType = {
+  userId: string;
+  sessionId: string;
+};
+
+export type finUserById = {
+  id: string;
+  email: string;
+  createdAt: Date;
+};

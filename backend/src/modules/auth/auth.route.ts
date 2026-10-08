@@ -2,9 +2,11 @@ import express from "express";
 import { validate } from "../../middleware/validate.middleware.js";
 import { loginUserSchema, registerUserSchema } from "./auth.schema.js";
 import {
+  loggedInUserController,
   loginUserController,
   registerUserController,
 } from "./auth.controller.js";
+import { authMiddleware } from "../../middleware/auth.middleware.js";
 const router = express.Router();
 
 router
@@ -14,5 +16,7 @@ router
 router
   .route("/login-user")
   .post(validate(loginUserSchema), loginUserController);
+
+router.route("/me").get(authMiddleware, loggedInUserController);
 
 export default router;

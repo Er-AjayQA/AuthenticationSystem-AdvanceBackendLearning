@@ -14,6 +14,6 @@ export const signRefreshToken = (payload: JWTPayload) => {
   });
 };
 
-export const verigyAccessToken = (token: string) => {
+export const verifyAccessToken = (token: string) => {
   return jwt.verify(token, env.ACCESS_TOKEN_SECRET) as JWTPayload;
 };
