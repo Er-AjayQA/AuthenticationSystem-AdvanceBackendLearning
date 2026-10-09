@@ -121,3 +121,16 @@ export const logoutAllDevicesController = CatchAsync(
     });
   },
 );
+
+export const getUserPersmissionsController = CatchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.userId as string;
+    const result = await authService.getUserPersmissions(userId);
+
+    sendResponse(res, 200, {
+      success: true,
+      message: "User permissions fetched successfully",
+      data: result,
+    });
+  },
+);

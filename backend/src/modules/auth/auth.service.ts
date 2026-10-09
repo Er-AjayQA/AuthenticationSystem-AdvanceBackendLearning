@@ -223,4 +223,34 @@ export class AuthService {
 
     await this.authRepo.revokeAllRefreshTokenByUser(user.id);
   }
+
+  async getUserPersmissions(userId: string) {
+    const user = await this.authRepo.findUserPermissions(userId);
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    // Extract Roles
+    const roles = user?.userRoles?.map((userRole) => userRole.role.name);
+
+    // Extract permissions
+    const permissions = user?.userRoles?.flatMap((userRole) =>
+      userRole.role.rolePermissions.map(
+        (rolePermission) => rolePermission.permission.name,
+      ),
+    );
+
+    // Remove Duplicates if any
+    const uniquePermissions = [...new Set(permissions)];
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      roles,
+      permissions: uniquePermissions,
+    };
+  }
 }

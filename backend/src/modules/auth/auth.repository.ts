@@ -37,6 +37,39 @@ export class AuthRepository implements IAuthRepository {
     return session;
   }
 
+  async findUserPermissions(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+                rolePermissions: {
+                  select: {
+                    permission: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return user;
+  }
+
   async createUser(data: CreateUserType) {
     const newUser = await prisma.user.create({
       data: { email: data.email, passwordHash: data.passwordHash },
