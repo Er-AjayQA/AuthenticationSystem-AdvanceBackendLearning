@@ -187,4 +187,37 @@ export class AuthService {
 
     return session;
   }
+
+  async logout(data: userType) {
+    const { userId, sessionId } = data;
+
+    if (!sessionId) {
+      throw new AppError("SessionId is missing", 401);
+    }
+
+    const userSession = await this.authRepo.findSessionByUserIdandSessionId(
+      userId,
+      sessionId,
+    );
+
+    if (!userSession) {
+      throw new AppError("Session not found or you are not authorized", 401);
+    }
+
+    const revokeSession = await this.authRepo.revokeSessionBySessionId(
+      userSession.id,
+    );
+
+    return true;
+  }
+
+  async logoutAllDevices(userId: string) {
+    const user = await this.authRepo.findUserById(userId);
+
+    if (!user) {
+      throw new AppError("User not found", 401);
+    }
+
+    await this.authRepo.revokeAllRefreshTokenByUser(user.id);
+  }
 }

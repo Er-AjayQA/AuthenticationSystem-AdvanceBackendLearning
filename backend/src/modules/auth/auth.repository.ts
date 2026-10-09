@@ -29,6 +29,14 @@ export class AuthRepository implements IAuthRepository {
     return userSession;
   }
 
+  async findSessionByUserIdandSessionId(userId: string, sessionId: string) {
+    const session = await prisma.session.findUnique({
+      where: { userId, id: sessionId },
+    });
+
+    return session;
+  }
+
   async createUser(data: CreateUserType) {
     const newUser = await prisma.user.create({
       data: { email: data.email, passwordHash: data.passwordHash },
@@ -54,7 +62,7 @@ export class AuthRepository implements IAuthRepository {
 
   async revokeAllRefreshTokenByUser(userId: string) {
     await prisma.session.updateMany({
-      where: { userId },
+      where: { userId, isRevoked: false },
       data: {
         isRevoked: true,
         revokedAt: new Date(),

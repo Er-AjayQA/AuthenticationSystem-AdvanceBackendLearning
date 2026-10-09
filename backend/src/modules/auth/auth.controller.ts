@@ -2,9 +2,8 @@ import { Request, Response } from "express";
 import { CatchAsync } from "../../common/helpers/CatchAsync.js";
 import authService from "./auth.container.js";
 import { sendResponse } from "../../common/helpers/AppResponse.js";
-import { setCookies } from "../../common/auth/auth.helper.js";
+import { clearCookies, setCookies } from "../../common/auth/auth.helper.js";
 import { userType } from "./auth.types.js";
-import { AppError } from "../../common/errors/AppError.js";
 
 export const registerUserController = CatchAsync(
   async (req: Request, res: Response) => {
@@ -89,6 +88,36 @@ export const refreshTokenController = CatchAsync(
       success: true,
       message: "Refresh token rotated successfully",
       data: { user: result.user, accessToken: result.accessToken },
+    });
+  },
+);
+
+export const logoutController = CatchAsync(
+  async (req: Request, res: Response) => {
+    const user = req.user as userType;
+    const result = await authService.logout(user);
+
+    if (result) {
+      clearCookies(res);
+    }
+
+    sendResponse(res, 200, {
+      success: true,
+      message: "Logout successfully",
+    });
+  },
+);
+
+export const logoutAllDevicesController = CatchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.userId as string;
+    await authService.logoutAllDevices(userId);
+
+    clearCookies(res);
+
+    sendResponse(res, 201, {
+      success: true,
+      message: "logout from all devices",
     });
   },
 );

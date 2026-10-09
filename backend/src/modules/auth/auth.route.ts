@@ -4,6 +4,8 @@ import { loginUserSchema, registerUserSchema } from "./auth.schema.js";
 import {
   loggedInUserController,
   loginUserController,
+  logoutAllDevicesController,
+  logoutController,
   refreshTokenController,
   registerUserController,
 } from "./auth.controller.js";
@@ -21,5 +23,11 @@ router
 router.route("/me").get(authMiddleware, loggedInUserController);
 
 router.route("/refresh-token").post(refreshTokenController);
+
+router.route("/logout").post(authMiddleware, logoutController);
+
+router
+  .route("/logout-all-devices")
+  .post(authMiddleware, logoutAllDevicesController);
 
 export default router;

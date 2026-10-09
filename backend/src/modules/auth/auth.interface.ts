@@ -10,6 +10,10 @@ export interface IAuthRepository {
   findUserByEmail(email: string): Promise<User | null>;
   findUserById(userId: string): Promise<finUserById | null>;
   findSessionById(sessionId: string): Promise<Session | null>;
+  findSessionByUserIdandSessionId(
+    userId: string,
+    sessionId: string,
+  ): Promise<Session | null>;
 
   createUser(data: CreateUserType): Promise<User>;
   createSession(data: createSessionType): Promise<Session>;

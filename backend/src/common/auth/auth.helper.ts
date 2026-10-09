@@ -25,6 +25,22 @@ export const setCookies = (res: Response, refreshToken: string) => {
     secure: env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: refreshTokenMaxAge,
-    // path: "/api/v1/auth/refresh",
+    path: "/api/v1/auth/refresh-token",
+  });
+};
+
+export const clearCookies = (res: Response) => {
+  const refreshTokenMaxAge = ms(env.REFRESH_TOKEN_EXPIRES as StringValue);
+
+  if (typeof refreshTokenMaxAge !== "number") {
+    throw new AppError("Invalid refresh token expiry configuration", 401);
+  }
+
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: refreshTokenMaxAge,
+    path: "/api/v1/auth/refresh-token",
   });
 };
