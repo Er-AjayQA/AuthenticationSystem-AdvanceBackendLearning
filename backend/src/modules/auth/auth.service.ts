@@ -174,12 +174,15 @@ export class AuthService {
     };
   }
 
-  async getSessionById(sessionId: string) {
+  async getUserSessionByUserIdAndSessionId(userId: string, sessionId: string) {
     if (!sessionId) {
       throw new AppError("SessionId is missing", 401);
     }
 
-    const session = await this.authRepo.findSessionById(sessionId);
+    const session = await this.authRepo.findSessionByUserIdandSessionId(
+      userId,
+      sessionId,
+    );
 
     if (!session) {
       throw new AppError("Session not found", 404);

@@ -27,7 +27,10 @@ export const authMiddleware = CatchAsync(
 
       const payload = verifyAccessToken(accessToken) as JWTPayload;
 
-      const session = await authService.getSessionById(payload.sessionId);
+      const session = await authService.getUserSessionByUserIdAndSessionId(
+        payload.sub,
+        payload.sessionId,
+      );
 
       if (session.isRevoked) {
         throw new AppError("Session revoked", 401);

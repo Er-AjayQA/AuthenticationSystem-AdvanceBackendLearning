@@ -10,11 +10,18 @@ import {
   registerUserController,
 } from "./auth.controller.js";
 import { authMiddleware } from "../../middleware/auth.middleware.js";
+import { authorizedPermissions } from "../../middleware/authorize.middleware.js";
+import { Permissions } from "../../common/constants/permissions.js";
 const router = express.Router();
 
 router
   .route("/register-user")
-  .post(validate(registerUserSchema), registerUserController);
+  .post(
+    authMiddleware,
+    authorizedPermissions(Permissions.MANAGE_USERS),
+    validate(registerUserSchema),
+    registerUserController,
+  );
 
 router
   .route("/login-user")

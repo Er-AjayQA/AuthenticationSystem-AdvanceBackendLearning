@@ -10,6 +10,11 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]),
   FRONTEND_URL: z.url(),
   DATABASE_URL: z.string(),
+  ADMIN_EMAIL: z.email("Invalid admin email"),
+  ADMIN_PASSWORD: z
+    .string()
+    .min(8, "Admin password must be atleast 8 characters")
+    .max(20, "Admin password can't be greater than 20 characters"),
   SALT_ROUND: z.coerce.number(),
   ACCESS_TOKEN_SECRET: z.string(),
   REFRESH_TOKEN_SECRET: z.string(),

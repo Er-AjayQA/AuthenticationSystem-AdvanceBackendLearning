@@ -35,9 +35,11 @@ app.get("/api/v1/health-check", async (req: Request, res: Response) => {
 });
 
 import authRouter from "./modules/auth/auth.route.js";
+import adminRouter from "./modules/admin/admin.route.js";
 import { requestLogger } from "./middleware/request-logger.middleware.js";
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/admin", adminRouter);
 
 // Global error for unknown routes
 app.use((req: Request, res: Response, next: NextFunction) => {
