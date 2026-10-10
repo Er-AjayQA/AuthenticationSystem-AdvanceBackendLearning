@@ -88,3 +88,41 @@ export const assignRolesController = CatchAsync(
     });
   },
 );
+
+export const removeUserRoleController = CatchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.params.userId as string;
+    const result = await adminService.removeUserRole(userId, req.body.roleId);
+
+    sendResponse(res, 201, {
+      success: true,
+      message: "User role removed successfully",
+    });
+  },
+);
+
+export const getAllUsersByRoleController = CatchAsync(
+  async (req: Request, res: Response) => {
+    const roleId = req.params.roleId as string;
+    const result = await adminService.findAllUsersByRole(roleId);
+
+    sendResponse(res, 200, {
+      success: true,
+      message: "Users fetched successfully",
+      data: result,
+    });
+  },
+);
+
+export const getUserPermissionsController = CatchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.params.userId as string;
+    const result = await adminService.userPermissionsByUserId(userId);
+
+    sendResponse(res, 200, {
+      success: true,
+      message: "User permissions fetched successfully",
+      data: result,
+    });
+  },
+);

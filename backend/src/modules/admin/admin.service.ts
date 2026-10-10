@@ -141,9 +141,66 @@ export class AdminService {
     );
 
     if (immutableRoles.length > 0) {
-      throw new AppError("System roles can't be assigned to nayone", 400);
+      throw new AppError("System roles can't be assigned to anyone", 400);
     }
 
     await this.adminRepo.assignRolesToUser(userId, data.roleIds);
+  }
+
+  async removeUserRole(userId: string, roleId: string) {
+    const user = this.authRepo.findUserById(userId);
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    const existingRole = await this.adminRepo.findRoleByRoleId(roleId);
+
+    if (!existingRole) {
+      throw new AppError("Role not found", 404);
+    }
+
+    const data = await this.adminRepo.removeUserRole(userId, roleId);
+    return data;
+  }
+
+  async findAllUsersByRole(roleId: string) {
+    const role = await this.adminRepo.findAllUsersByRoleId(roleId);
+
+    if (!role) {
+      throw new AppError("Role not found", 404);
+    }
+
+    const users = role.userRoles.map((userRole) => ({
+      id: userRole.user.id,
+      email: userRole.user.email,
+    }));
+
+    const formattedData = {
+      id: role.id,
+      name: role.name,
+      users,
+    };
+
+    return formattedData;
+  }
+
+  async userPermissionsByUserId(userId: string) {
+    const data = await this.adminRepo.findPermissionsByUserId(userId);
+
+    if (!data) {
+      throw new AppError("No permissions found", 404);
+    }
+
+    const formattedData = data.userRoles.flatMap((userRole) => {
+      return userRole.role.rolePermissions.map(
+        (rolePermission) => rolePermission.permission.name,
+      );
+    });
+
+    // Fetch unique if any duplicate values
+    const uniquePermissions = [...new Set(formattedData)];
+
+    return uniquePermissions;
   }
 }

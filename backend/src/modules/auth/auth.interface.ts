@@ -5,6 +5,7 @@ import {
   finUserById,
   updatedSessionType,
   UserPermissionsType,
+  UserWithPermissionType,
 } from "./auth.types.js";
 
 export interface IAuthRepository {
@@ -15,7 +16,7 @@ export interface IAuthRepository {
     userId: string,
     sessionId: string,
   ): Promise<Session | null>;
-  findUserPermissions(userId: string): Promise<UserPermissionsType | null>;
+  findUserPermissions(userId: string): Promise<UserWithPermissionType | null>;
 
   createUser(data: CreateUserType): Promise<User>;
   createSession(data: createSessionType): Promise<Session>;

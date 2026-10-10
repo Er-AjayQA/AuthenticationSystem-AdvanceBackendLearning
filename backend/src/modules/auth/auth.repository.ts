@@ -6,6 +6,7 @@ import {
   CreateUserType,
   updatedSessionType,
 } from "./auth.types.js";
+import { AppError } from "../../common/errors/AppError.js";
 
 export class AuthRepository implements IAuthRepository {
   async findUserByEmail(email: string) {
@@ -38,24 +39,26 @@ export class AuthRepository implements IAuthRepository {
   }
 
   async findUserPermissions(userId: string) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
+    return prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
 
-        userRoles: {
-          select: {
-            role: {
-              select: {
-                id: true,
-                name: true,
-                rolePermissions: {
-                  select: {
-                    permission: {
-                      select: {
-                        id: true,
-                        name: true,
+          userRoles: {
+            select: {
+              role: {
+                select: {
+                  id: true,
+                  name: true,
+                  rolePermissions: {
+                    select: {
+                      permission: {
+                        select: {
+                          id: true,
+                          name: true,
+                        },
                       },
                     },
                   },
@@ -64,10 +67,34 @@ export class AuthRepository implements IAuthRepository {
             },
           },
         },
-      },
-    });
+      });
 
-    return user;
+      if (!user) {
+        throw new AppError("User not found", 404);
+      }
+
+      // Extract Roles
+      const roles = user?.userRoles?.map((userRole) => userRole.role.name);
+
+      // Extract permissions
+      const permissions = user?.userRoles?.flatMap((userRole) =>
+        userRole.role.rolePermissions.map(
+          (rolePermission) => rolePermission.permission.name,
+        ),
+      );
+
+      // Remove Duplicates if any
+      const uniquePermissions = [...new Set(permissions)];
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+        },
+        roles,
+        permissions: uniquePermissions,
+      };
+    });
   }
 
   async createUser(data: CreateUserType) {

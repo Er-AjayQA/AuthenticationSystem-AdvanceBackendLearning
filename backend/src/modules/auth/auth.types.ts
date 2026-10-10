@@ -56,3 +56,12 @@ export type UserPermissionsType = Prisma.UserGetPayload<{
     };
   };
 }>;
+
+export type UserWithPermissionType = {
+  user: {
+    id: string;
+    email: string;
+  };
+  roles: string[];
+  permissions: string[];
+};

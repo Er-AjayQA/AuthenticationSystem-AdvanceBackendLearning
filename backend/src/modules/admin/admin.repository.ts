@@ -1,7 +1,8 @@
+import { IMUTABLE_ROLES } from "../../common/constants/system-roles.js";
 import { AppError } from "../../common/errors/AppError.js";
 import { prisma } from "../../lib/prisma.js";
 import { IAdminRepository } from "./admin.interface.js";
-import { updateRoleInputType } from "./admin.types.js";
+import { UpdateRoleInputType } from "./admin.types.js";
 
 export class AdminRepository implements IAdminRepository {
   async findAllUsers() {
@@ -99,6 +100,60 @@ export class AdminRepository implements IAdminRepository {
     return roles;
   }
 
+  async findAllUsersByRoleId(roleId: string) {
+    const role = await prisma.role.findUnique({
+      where: {
+        id: roleId,
+      },
+      include: {
+        userRoles: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                isEmailVerified: true,
+                provider: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return role;
+  }
+
+  async findPermissionsByUserId(userId: string) {
+    const data = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        userRoles: {
+          include: {
+            role: {
+              include: {
+                rolePermissions: {
+                  include: {
+                    permission: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return data;
+  }
+
   async createRoleWithPermissions(name: string, permissions: string[]) {
     return prisma.$transaction(async (tx) => {
       const existingRole = await tx.role.findUnique({ where: { name } });
@@ -132,7 +187,7 @@ export class AdminRepository implements IAdminRepository {
     });
   }
 
-  async updateRoleWithPermissions(roleId: string, data: updateRoleInputType) {
+  async updateRoleWithPermissions(roleId: string, data: UpdateRoleInputType) {
     return prisma.$transaction(async (tx) => {
       const existingRole = tx.role.findUnique({
         where: { id: roleId },
@@ -259,6 +314,49 @@ export class AdminRepository implements IAdminRepository {
           userId,
           roleId,
         })),
+      });
+
+      return true;
+    });
+  }
+
+  async removeUserRole(userId: string, roleId: string) {
+    return prisma.$transaction(async (tx) => {
+      const assignment = await tx.userRole.findUnique({
+        where: {
+          userId_roleId: {
+            userId,
+            roleId,
+          },
+        },
+        include: {
+          role: true,
+        },
+      });
+
+      if (!assignment) {
+        throw new AppError("No such role were assigned to user", 400);
+      }
+
+      if (IMUTABLE_ROLES.includes(assignment.role.name as any)) {
+        const systemRoleAssignmentCount = await tx.userRole.count({
+          where: {
+            roleId: assignment.role.id,
+          },
+        });
+
+        if (systemRoleAssignmentCount <= 1) {
+          throw new AppError("Can't remove last system role", 400);
+        }
+      }
+
+      await tx.userRole.delete({
+        where: {
+          userId_roleId: {
+            userId,
+            roleId,
+          },
+        },
       });
 
       return true;

@@ -56,6 +56,22 @@ export const assignRolesBodySchema = z.object({
   roleIds: z.array(z.uuid()).min(1, "Atleast assign any one role"),
 });
 
+export const removeUserRoleParamsSchema = z.object({
+  userId: z.uuid("Invalid userId provided in params"),
+});
+
+export const removeUserRoleBodySchema = z.object({
+  roleId: z.uuid("Invalid role selected"),
+});
+
+export const getUsersByRoleParamsSchema = z.object({
+  roleId: z.uuid("Invalid roleId provided in params"),
+});
+
+export const getUsersPermissionsParamsSchema = z.object({
+  userId: z.uuid("Invalid userId provided in params"),
+});
+
 export type CreateRoleInputDTO = z.infer<typeof createRoleSchema>;
 export type UpdateRoleInputDTO = z.infer<typeof updateRoleSchema>;
 export type AssignRolesBodyDTO = z.infer<typeof assignRolesBodySchema>;

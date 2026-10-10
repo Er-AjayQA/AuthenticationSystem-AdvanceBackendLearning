@@ -122,7 +122,7 @@ export const logoutAllDevicesController = CatchAsync(
   },
 );
 
-export const getUserPersmissionsController = CatchAsync(
+export const getMyPersmissionsController = CatchAsync(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId as string;
     const result = await authService.getUserPersmissions(userId);
