@@ -1,9 +1,14 @@
+import { IMUTABLE_ROLES } from "../../common/constants/system-roles.js";
 import { AppError } from "../../common/errors/AppError.js";
 import { IAuthRepository } from "../auth/auth.interface.js";
 import { toRoleResponseDTO } from "./admin.dto.js";
 import { IAdminRepository } from "./admin.interface.js";
 import { sanitizeUserListResponse } from "./admin.response.js";
-import { CreateRoleInputDTO, UpdateRoleInputDTO } from "./admin.schema.js";
+import {
+  AssignRolesBodyDTO,
+  CreateRoleInputDTO,
+  UpdateRoleInputDTO,
+} from "./admin.schema.js";
 
 export class AdminService {
   constructor(
@@ -91,5 +96,54 @@ export class AdminService {
 
       throw error;
     }
+  }
+
+  async deleteRole(roleId: string) {
+    const role = await this.adminRepo.findRoleByRoleId(roleId);
+
+    if (!role) {
+      throw new AppError("Role not found", 404);
+    }
+
+    if (IMUTABLE_ROLES.includes(role.name as any)) {
+      throw new AppError("System roles can't be deleted", 400);
+    }
+
+    try {
+      await this.adminRepo.deleteRoleById(roleId);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "ROLE_NOT_FOUND") {
+          throw new AppError("Role not found", 404);
+        }
+
+        if (error.message === "ASSIGNED_TO_USERS") {
+          throw new AppError(
+            "Can't delete the role as it is already assigned to users",
+            400,
+          );
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  async assignRolesToUser(userId: string, data: AssignRolesBodyDTO) {
+    const allRoles = await this.adminRepo.findAllRolesByIds(data.roleIds);
+
+    if (!allRoles) {
+      throw new AppError("Roles not found", 404);
+    }
+
+    const immutableRoles = allRoles.filter((role) =>
+      IMUTABLE_ROLES.includes(role.name as any),
+    );
+
+    if (immutableRoles.length > 0) {
+      throw new AppError("System roles can't be assigned to nayone", 400);
+    }
+
+    await this.adminRepo.assignRolesToUser(userId, data.roleIds);
   }
 }

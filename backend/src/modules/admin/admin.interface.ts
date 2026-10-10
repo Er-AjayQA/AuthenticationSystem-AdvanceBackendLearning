@@ -9,6 +9,7 @@ export interface IAdminRepository {
   findAllUsers(): Promise<User[]>;
   findAllRoles(): Promise<AllRolesType | null>;
   findRoleByRoleId(roleId: string): Promise<RoleByIdType | null>;
+  findAllRolesByIds(roleIds: string[]): Promise<Role[] | null>;
 
   createRoleWithPermissions(name: string, permissions: string[]): Promise<Role>;
 
@@ -16,4 +17,8 @@ export interface IAdminRepository {
     roleId: string,
     data: updateRoleInputType,
   ): Promise<Role>;
+
+  deleteRoleById(roleId: string): Promise<void>;
+
+  assignRolesToUser(userId: string, roleIds: string[]): Promise<boolean>;
 }

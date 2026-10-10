@@ -1,3 +1,4 @@
+import { AppError } from "../../common/errors/AppError.js";
 import { prisma } from "../../lib/prisma.js";
 import { IAdminRepository } from "./admin.interface.js";
 import { updateRoleInputType } from "./admin.types.js";
@@ -10,10 +11,13 @@ export class AdminRepository implements IAdminRepository {
 
   async findAllRoles() {
     const roles = await prisma.role.findMany({
+      where: { isDeleted: false },
+
       select: {
         id: true,
         name: true,
         createdAt: true,
+        isDeleted: false,
 
         userRoles: {
           select: {
@@ -42,11 +46,13 @@ export class AdminRepository implements IAdminRepository {
 
   async findRoleByRoleId(roleId: string) {
     const role = await prisma.role.findUnique({
-      where: { id: roleId },
+      where: { id: roleId, isDeleted: false },
+
       select: {
         id: true,
         name: true,
         createdAt: true,
+        isDeleted: false,
 
         userRoles: {
           select: {
@@ -78,6 +84,19 @@ export class AdminRepository implements IAdminRepository {
     });
 
     return role;
+  }
+
+  async findAllRolesByIds(roleIds: string[]) {
+    const roles = await prisma.role.findMany({
+      where: {
+        isDeleted: false,
+        id: {
+          in: roleIds,
+        },
+      },
+    });
+
+    return roles;
   }
 
   async createRoleWithPermissions(name: string, permissions: string[]) {
@@ -165,6 +184,84 @@ export class AdminRepository implements IAdminRepository {
       }
 
       return updatedRole;
+    });
+  }
+
+  async deleteRoleById(roleId: string) {
+    return await prisma.$transaction(async (tx) => {
+      const existingRole = await tx.role.findUnique({
+        where: { id: roleId, isDeleted: false },
+        include: { userRoles: true },
+      });
+
+      if (!existingRole) {
+        throw new Error("ROLE_NOT_FOUND");
+      }
+
+      if (existingRole.userRoles.length > 0) {
+        throw new Error("ASSIGNED_TO_USERS");
+      }
+
+      const updatedRole = await prisma.role.update({
+        where: { id: roleId },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+        },
+      });
+    });
+  }
+
+  async assignRolesToUser(userId: string, roleIds: string[]) {
+    return prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({ where: { id: userId } });
+
+      if (!user) {
+        throw new AppError("User not found", 404);
+      }
+
+      const existingDbRoles = await tx.role.findMany({
+        where: {
+          id: {
+            in: roleIds,
+          },
+          isDeleted: false,
+        },
+      });
+
+      if (existingDbRoles.length !== roleIds.length) {
+        throw new AppError("Invalid roles provided", 400);
+      }
+
+      const existingAssignments = await tx.userRole.findMany({
+        where: {
+          userId,
+          roleId: {
+            in: roleIds,
+          },
+        },
+      });
+
+      const existingRoleIds = new Set(
+        existingAssignments.map((assignment) => assignment.roleId),
+      );
+
+      const newAssignments = roleIds.filter(
+        (roleId) => !existingRoleIds.has(roleId),
+      );
+
+      if (newAssignments.length === 0) {
+        throw new AppError("Roles already assigned", 400);
+      }
+
+      await tx.userRole.createMany({
+        data: newAssignments.map((roleId) => ({
+          userId,
+          roleId,
+        })),
+      });
+
+      return true;
     });
   }
 }
