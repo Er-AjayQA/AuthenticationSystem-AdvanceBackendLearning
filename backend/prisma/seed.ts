@@ -8,6 +8,7 @@ async function main() {
   const permissions = [
     Permissions.MANAGE_USERS,
     Permissions.DELETE_USERS,
+    Permissions.DELETE_POSTS,
     Permissions.VIEW_ANALYTICS,
     Permissions.MANAGE_ROLES,
   ];
@@ -41,15 +42,15 @@ async function main() {
   for (const permission of dbPermissions) {
     await prisma.rolePermission.upsert({
       where: {
-        roleId_persmissionId: {
+        roleId_permissionId: {
           roleId: adminRole.id,
-          persmissionId: permission.id,
+          permissionId: permission.id,
         },
       },
       update: {},
       create: {
         roleId: adminRole.id,
-        persmissionId: permission.id,
+        permissionId: permission.id,
       },
     });
   }
