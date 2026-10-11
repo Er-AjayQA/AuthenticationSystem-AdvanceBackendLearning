@@ -20,6 +20,8 @@ const envSchema = z.object({
   REFRESH_TOKEN_SECRET: z.string(),
   ACCESS_TOKEN_EXPIRES: z.string(),
   REFRESH_TOKEN_EXPIRES: z.string(),
+  REDIS_URL: z.string(),
+  REDIS_PORT: z.coerce.number(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

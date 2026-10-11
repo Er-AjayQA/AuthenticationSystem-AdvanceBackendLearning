@@ -6,8 +6,11 @@ import {
   assignRolesController,
   createRoleController,
   deleteRoleByIdController,
+  getAllPermissionsController,
   getAllRolesController,
+  getAllUsersByPermissionController,
   getAllUsersByRoleController,
+  getPermissionDetailsController,
   getRoleByIdController,
   getUserPermissionsController,
   getUsersController,
@@ -20,6 +23,8 @@ import {
   assignRolesParamsSchema,
   createRoleSchema,
   deleteRolesParamsSchema,
+  getAllUsersByPermissionIdSchema,
+  getPermissionDetailsParamsSchema,
   getRoleByIdSchema,
   getUsersByRoleParamsSchema,
   getUsersPermissionsParamsSchema,
@@ -120,6 +125,32 @@ router
     authorizedPermissions(Permissions.MANAGE_USERS),
     validate(getUsersPermissionsParamsSchema, "params"),
     getUserPermissionsController,
+  );
+
+router
+  .route("/permissions")
+  .get(
+    authMiddleware,
+    authorizedPermissions(Permissions.MANAGE_ROLES),
+    getAllPermissionsController,
+  );
+
+router
+  .route("/permissions/:permissionId")
+  .get(
+    authMiddleware,
+    authorizedPermissions(Permissions.MANAGE_ROLES),
+    validate(getPermissionDetailsParamsSchema, "params"),
+    getPermissionDetailsController,
+  );
+
+router
+  .route("/permissions/:permissionId/users")
+  .get(
+    authMiddleware,
+    authorizedPermissions(Permissions.MANAGE_ROLES),
+    validate(getAllUsersByPermissionIdSchema, "params"),
+    getAllUsersByPermissionController,
   );
 
 export default router;

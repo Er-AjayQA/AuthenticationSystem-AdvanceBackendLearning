@@ -78,18 +78,46 @@ export type GetRoleWithUsersType = {
   }[];
 } | null;
 
-export type GetUserWithPermissionType = Prisma.UserGetPayload<{
-  include: {
-    userRoles: {
-      include: {
+export type GetAllPermissionsType = Prisma.PermissionGetPayload<{
+  select: {
+    id: true;
+    name: true;
+  };
+}>;
+
+export type GetPermissionDetailType = Prisma.PermissionGetPayload<{
+  select: {
+    id: true;
+    name: true;
+
+    rolePermissions: {
+      select: {
         role: {
-          include: {
-            rolePermissions: {
-              include: {
-                permission: {
+          select: {
+            id: true;
+            name: true;
+          };
+        };
+      };
+    };
+  };
+}>;
+
+export type GetUsersByPermissionType = Prisma.PermissionGetPayload<{
+  select: {
+    id: true;
+    name: true;
+
+    rolePermissions: {
+      select: {
+        role: {
+          select: {
+            userRoles: {
+              select: {
+                user: {
                   select: {
                     id: true;
-                    name: true;
+                    email: true;
                   };
                 };
               };

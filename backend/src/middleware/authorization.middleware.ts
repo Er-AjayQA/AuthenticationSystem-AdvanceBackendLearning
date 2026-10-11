@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { AppError } from "../common/errors/AppError.js";
-import { prisma } from "../lib/prisma.js";
+import { permissionsService } from "../modules/auth/auth.permissions.service.js";
 
 export const authorizedPermissions =
   (...requiredPermissions: string[]) =>
@@ -10,42 +10,12 @@ export const authorizedPermissions =
         return next(new AppError("Unauthorized", 401));
       }
 
-      // Fetch user with user roles
-      const user = await prisma.user.findUnique({
-        where: { id: req.user.userId },
-        include: {
-          userRoles: {
-            where: {
-              role: {
-                isDeleted: false,
-              },
-            },
-
-            include: {
-              role: {
-                include: { rolePermissions: { include: { permission: true } } },
-              },
-            },
-          },
-        },
-      });
-
-      if (!user) {
-        return next(new AppError("User not found", 404));
-      }
-
-      // Extract all permissions
-      const permissions = user.userRoles.flatMap((userRole) => {
-        return userRole.role.rolePermissions.map(
-          (rolePermission) => rolePermission.permission.name,
-        );
-      });
-
-      // Remove duplicates
-      const uniquePermissions = [...new Set(permissions)];
+      const permissions = await permissionsService.getUserPermissions(
+        req.user.userId,
+      );
 
       const hasPermissions = requiredPermissions.every((permission) =>
-        uniquePermissions.includes(permission),
+        permissions.includes(permission),
       );
 
       if (!hasPermissions) {

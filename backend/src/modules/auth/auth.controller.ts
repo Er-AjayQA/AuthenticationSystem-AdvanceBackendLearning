@@ -129,7 +129,7 @@ export const getMyPersmissionsController = CatchAsync(
 
     sendResponse(res, 200, {
       success: true,
-      message: "User permissions fetched successfully",
+      message: "Permissions fetched successfully",
       data: result,
     });
   },

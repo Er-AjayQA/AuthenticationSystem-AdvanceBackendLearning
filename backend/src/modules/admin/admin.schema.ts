@@ -72,6 +72,14 @@ export const getUsersPermissionsParamsSchema = z.object({
   userId: z.uuid("Invalid userId provided in params"),
 });
 
+export const getPermissionDetailsParamsSchema = z.object({
+  permissionId: z.uuid("Invalid permissionId provided in params"),
+});
+
+export const getAllUsersByPermissionIdSchema = z.object({
+  permissionId: z.uuid("Invalid permissionId provided in params"),
+});
+
 export type CreateRoleInputDTO = z.infer<typeof createRoleSchema>;
 export type UpdateRoleInputDTO = z.infer<typeof updateRoleSchema>;
 export type AssignRolesBodyDTO = z.infer<typeof assignRolesBodySchema>;

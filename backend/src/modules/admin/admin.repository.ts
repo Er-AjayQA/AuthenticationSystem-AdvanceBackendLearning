@@ -1,11 +1,7 @@
 import { IMUTABLE_ROLES } from "../../common/constants/system-roles.js";
 import { AppError } from "../../common/errors/AppError.js";
 import { prisma } from "../../lib/prisma.js";
-import {
-  ensureRoleIsAssignable,
-  ensureRoleIsDeletable,
-  ensureRoleIsEditable,
-} from "./admin.helper.js";
+import { ensureRoleIsAssignable } from "./admin.helper.js";
 import { IAdminRepository } from "./admin.interface.js";
 import { RoleByIdType, UpdateRoleInputType } from "./admin.types.js";
 
@@ -130,22 +126,57 @@ export class AdminRepository implements IAdminRepository {
     return role;
   }
 
-  async findPermissionsByUserId(userId: string) {
-    const data = await prisma.user.findUnique({
-      where: {
-        id: userId,
+  async findAllPermissions() {
+    const permissions = await prisma.permission.findMany({
+      select: {
+        id: true,
+        name: true,
       },
-      include: {
-        userRoles: {
-          include: {
+    });
+    return permissions;
+  }
+
+  async findPermissionById(permissionId: string) {
+    const permission = await prisma.permission.findUnique({
+      where: { id: permissionId },
+      select: {
+        id: true,
+        name: true,
+
+        rolePermissions: {
+          select: {
             role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return permission;
+  }
+
+  async findAllUsersByPermissionId(permissionId: string) {
+    const users = await prisma.permission.findUnique({
+      where: { id: permissionId },
+
+      select: {
+        id: true,
+        name: true,
+
+        rolePermissions: {
+          select: {
+            role: {
+              select: {
+                userRoles: {
+                  select: {
+                    user: {
                       select: {
                         id: true,
-                        name: true,
+                        email: true,
                       },
                     },
                   },
@@ -157,7 +188,7 @@ export class AdminRepository implements IAdminRepository {
       },
     });
 
-    return data;
+    return users;
   }
 
   async createRoleWithPermissions(name: string, permissions: string[]) {
@@ -245,7 +276,7 @@ export class AdminRepository implements IAdminRepository {
         throw new AppError("Can't delete already assigned roles.", 400);
       }
 
-      const updatedRole = await prisma.role.update({
+      await prisma.role.update({
         where: { id: existingRole.id },
         data: {
           isDeleted: true,

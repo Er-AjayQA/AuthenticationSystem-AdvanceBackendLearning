@@ -1,8 +1,10 @@
-import { Role, User } from "@prisma/client";
+import { Permission, Role, User } from "@prisma/client";
 import {
   AllRolesType,
+  GetAllPermissionsType,
+  GetPermissionDetailType,
   GetRoleWithUsersType,
-  GetUserWithPermissionType,
+  GetUsersByPermissionType,
   RoleByIdType,
   UpdateRoleInputType,
 } from "./admin.types.js";
@@ -13,9 +15,13 @@ export interface IAdminRepository {
   findRoleByRoleId(roleId: string): Promise<RoleByIdType | null>;
   findAllRolesByIds(roleIds: string[]): Promise<Role[] | null>;
   findAllUsersByRoleId(roleId: string): Promise<GetRoleWithUsersType>;
-  findPermissionsByUserId(
-    userId: string,
-  ): Promise<GetUserWithPermissionType | null>;
+  findAllPermissions(): Promise<GetAllPermissionsType[]>;
+  findPermissionById(
+    permissionId: string,
+  ): Promise<GetPermissionDetailType | null>;
+  findAllUsersByPermissionId(
+    permissionId: string,
+  ): Promise<GetUsersByPermissionType | null>;
 
   createRoleWithPermissions(name: string, permissions: string[]): Promise<Role>;
 

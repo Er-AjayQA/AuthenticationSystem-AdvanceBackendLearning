@@ -11,6 +11,7 @@ import { CreateUserType, userType } from "./auth.types.js";
 import { env } from "../../config/env.config.js";
 import { signAccessToken, signRefreshToken } from "../../common/auth/jwt.js";
 import { hashRefreshToken } from "../../common/auth/token.js";
+import { permissionsService } from "./auth.permissions.service.js";
 
 export class AuthService {
   constructor(private authRepo: IAuthRepository) {}
@@ -225,13 +226,11 @@ export class AuthService {
   }
 
   async getUserPersmissions(userId: string) {
-    const user = await this.authRepo.findUserPermissions(userId);
+    const permissions = await permissionsService.getUserPermissions(userId);
 
-    if (!user) {
-      throw new AppError("User not found", 404);
+    if (!permissions.length) {
+      throw new AppError("User don't have any permissions", 404);
     }
-
-    const permissions = await this.authRepo.findUserPermissions(userId);
 
     return permissions;
   }

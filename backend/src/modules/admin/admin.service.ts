@@ -1,6 +1,7 @@
 import { IMUTABLE_ROLES } from "../../common/constants/system-roles.js";
 import { AppError } from "../../common/errors/AppError.js";
 import { IAuthRepository } from "../auth/auth.interface.js";
+import { permissionsService } from "../auth/auth.permissions.service.js";
 import { toRoleResponseDTO } from "./admin.dto.js";
 import {
   ensureRoleIsAssignable,
@@ -91,6 +92,8 @@ export class AdminService {
       data,
     );
 
+    await permissionsService.invalidateRoleUsers(roleId);
+
     return updatedRole;
   }
 
@@ -104,6 +107,7 @@ export class AdminService {
     ensureRoleIsDeletable(existingRole);
 
     await this.adminRepo.deleteRoleById(existingRole);
+    await permissionsService.invalidateRoleUsers(roleId);
   }
 
   async assignRolesToUser(userId: string, data: AssignRolesBodyDTO) {
@@ -116,6 +120,7 @@ export class AdminService {
     allRoles.forEach((role) => ensureRoleIsAssignable(role));
 
     await this.adminRepo.assignRolesToUser(userId, data.roleIds);
+    await permissionsService.invalidateUserPermissions(userId);
   }
 
   async removeUserRole(userId: string, roleId: string) {
@@ -134,6 +139,7 @@ export class AdminService {
     ensureRoleIsRemovable(existingRole);
 
     const data = await this.adminRepo.removeUserRole(userId, roleId);
+    await permissionsService.invalidateUserPermissions(userId);
     return data;
   }
 
@@ -159,21 +165,59 @@ export class AdminService {
   }
 
   async userPermissionsByUserId(userId: string) {
-    const data = await this.adminRepo.findPermissionsByUserId(userId);
+    const permissions = await permissionsService.getUserPermissions(userId);
 
-    if (!data) {
-      throw new AppError("No permissions found", 404);
+    if (!permissions.length) {
+      throw new AppError("user don't have any permissions", 404);
     }
 
-    const formattedData = data.userRoles.flatMap((userRole) => {
-      return userRole.role.rolePermissions.map(
-        (rolePermission) => rolePermission.permission.name,
-      );
+    return permissions;
+  }
+
+  async getAllPermissions() {
+    const permissions = await this.adminRepo.findAllPermissions();
+    return permissions;
+  }
+
+  async getPermissionDetail(permissionId: string) {
+    const permission = await this.adminRepo.findPermissionById(permissionId);
+
+    if (!permission) {
+      throw new AppError("Permission not found", 404);
+    }
+
+    return permission;
+  }
+
+  async getAllUsersByPermissionId(permissionId: string) {
+    const permissionExist =
+      await this.adminRepo.findPermissionById(permissionId);
+
+    if (!permissionExist) {
+      throw new AppError("Permission not found", 404);
+    }
+
+    const permission =
+      await this.adminRepo.findAllUsersByPermissionId(permissionId);
+
+    const users = permission?.rolePermissions.flatMap((rolePermission) => {
+      return rolePermission.role.userRoles.map((userRole) => ({
+        id: userRole.user.id,
+        email: userRole.user.email,
+      }));
     });
 
-    // Fetch unique if any duplicate values
-    const uniquePermissions = [...new Set(formattedData)];
+    if (!users) {
+      throw new AppError("Users not found", 404);
+    }
 
-    return uniquePermissions;
+    const uniqueUsers = Array.from(
+      new Map(users?.map((user) => [user.id, user])).values(),
+    );
+
+    return {
+      permission: { id: permission?.id, name: permission?.name },
+      users: uniqueUsers,
+    };
   }
 }
