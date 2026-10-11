@@ -15,6 +15,12 @@ export const authorizedPermissions =
         where: { id: req.user.userId },
         include: {
           userRoles: {
+            where: {
+              role: {
+                isDeleted: false,
+              },
+            },
+
             include: {
               role: {
                 include: { rolePermissions: { include: { permission: true } } },

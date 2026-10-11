@@ -29,7 +29,9 @@ export type RoleByIdType = Prisma.RoleGetPayload<{
   select: {
     id: true;
     name: true;
+    isSystem: true;
     createdAt: true;
+    isDeleted: false;
 
     userRoles: {
       select: {

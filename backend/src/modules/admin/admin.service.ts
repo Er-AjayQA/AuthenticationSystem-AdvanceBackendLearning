@@ -2,6 +2,12 @@ import { IMUTABLE_ROLES } from "../../common/constants/system-roles.js";
 import { AppError } from "../../common/errors/AppError.js";
 import { IAuthRepository } from "../auth/auth.interface.js";
 import { toRoleResponseDTO } from "./admin.dto.js";
+import {
+  ensureRoleIsAssignable,
+  ensureRoleIsDeletable,
+  ensureRoleIsEditable,
+  ensureRoleIsRemovable,
+} from "./admin.helper.js";
 import { IAdminRepository } from "./admin.interface.js";
 import { sanitizeUserListResponse } from "./admin.response.js";
 import {
@@ -72,61 +78,32 @@ export class AdminService {
   }
 
   async updateRole(roleId: string, data: UpdateRoleInputDTO) {
-    try {
-      const updatedRole = await this.adminRepo.updateRoleWithPermissions(
-        roleId,
-        data,
-      );
+    const existingRole = await this.adminRepo.findRoleByRoleId(roleId);
 
-      return updatedRole;
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message === "ROLE_NOT_FOUND") {
-          throw new AppError("Role not found", 404);
-        }
-
-        if (error.message === "ROLE_ALREADY_EXIST") {
-          throw new AppError("Role already exist", 409);
-        }
-
-        if (error.message === "INVALID_PERMISSIONS") {
-          throw new AppError("Invalid permissions provided", 400);
-        }
-      }
-
-      throw error;
-    }
-  }
-
-  async deleteRole(roleId: string) {
-    const role = await this.adminRepo.findRoleByRoleId(roleId);
-
-    if (!role) {
+    if (!existingRole) {
       throw new AppError("Role not found", 404);
     }
 
-    if (IMUTABLE_ROLES.includes(role.name as any)) {
-      throw new AppError("System roles can't be deleted", 400);
+    ensureRoleIsEditable(existingRole);
+
+    const updatedRole = await this.adminRepo.updateRoleWithPermissions(
+      roleId,
+      data,
+    );
+
+    return updatedRole;
+  }
+
+  async deleteRole(roleId: string) {
+    const existingRole = await this.adminRepo.findRoleByRoleId(roleId);
+
+    if (!existingRole) {
+      throw new AppError("Role not found", 404);
     }
 
-    try {
-      await this.adminRepo.deleteRoleById(roleId);
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message === "ROLE_NOT_FOUND") {
-          throw new AppError("Role not found", 404);
-        }
+    ensureRoleIsDeletable(existingRole);
 
-        if (error.message === "ASSIGNED_TO_USERS") {
-          throw new AppError(
-            "Can't delete the role as it is already assigned to users",
-            400,
-          );
-        }
-      }
-
-      throw error;
-    }
+    await this.adminRepo.deleteRoleById(existingRole);
   }
 
   async assignRolesToUser(userId: string, data: AssignRolesBodyDTO) {
@@ -136,13 +113,7 @@ export class AdminService {
       throw new AppError("Roles not found", 404);
     }
 
-    const immutableRoles = allRoles.filter((role) =>
-      IMUTABLE_ROLES.includes(role.name as any),
-    );
-
-    if (immutableRoles.length > 0) {
-      throw new AppError("System roles can't be assigned to anyone", 400);
-    }
+    allRoles.forEach((role) => ensureRoleIsAssignable(role));
 
     await this.adminRepo.assignRolesToUser(userId, data.roleIds);
   }
@@ -159,6 +130,8 @@ export class AdminService {
     if (!existingRole) {
       throw new AppError("Role not found", 404);
     }
+
+    ensureRoleIsRemovable(existingRole);
 
     const data = await this.adminRepo.removeUserRole(userId, roleId);
     return data;

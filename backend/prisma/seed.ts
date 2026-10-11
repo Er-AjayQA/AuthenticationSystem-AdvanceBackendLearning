@@ -16,8 +16,8 @@ async function main() {
   // Admin Roles to DB
   const adminRole = await prisma.role.upsert({
     where: { name: "ADMIN" },
-    update: {},
-    create: { name: "ADMIN" },
+    update: { isSystem: true },
+    create: { name: "ADMIN", isSystem: true },
   });
   logger.info("Admin Roles added successfully");
 

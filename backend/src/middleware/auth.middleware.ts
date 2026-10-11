@@ -33,15 +33,15 @@ export const authMiddleware = CatchAsync(
       );
 
       if (session.isRevoked) {
-        throw new AppError("Session revoked", 401);
+        return next(new AppError("Session revoked", 401));
       }
 
       if (session.expiresAt < new Date()) {
-        throw new AppError("Session expired", 401);
+        return next(new AppError("Session expired", 401));
       }
 
       if (session.userId !== payload.sub) {
-        throw new AppError("Invalid session", 401);
+        return next(new AppError("Invalid session", 401));
       }
 
       req.user = {
@@ -52,11 +52,11 @@ export const authMiddleware = CatchAsync(
       next();
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        new AppError("Access token expired", 401);
+        return next(new AppError("Access token expired", 401));
       }
 
       if (error instanceof jwt.JsonWebTokenError) {
-        new AppError("Invalid access token", 401);
+        return next(new AppError("Invalid access token", 401));
       }
 
       return next(error);

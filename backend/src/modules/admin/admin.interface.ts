@@ -24,7 +24,7 @@ export interface IAdminRepository {
     data: UpdateRoleInputType,
   ): Promise<Role>;
 
-  deleteRoleById(roleId: string): Promise<void>;
+  deleteRoleById(role: RoleByIdType): Promise<void>;
 
   assignRolesToUser(userId: string, roleIds: string[]): Promise<boolean>;
 

@@ -49,6 +49,7 @@ export class AuthRepository implements IAuthRepository {
           userRoles: {
             select: {
               role: {
+                where: { isDeleted: false },
                 select: {
                   id: true,
                   name: true,

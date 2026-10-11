@@ -47,6 +47,7 @@ model Session {
 model Role {
   id                            String                     @id @default(uuid())
   name                          String                     @unique
+  isSystem                      Boolean                    @default(false)
   createdAt                     DateTime                   @default(now())
   isDeleted                     Boolean                    @default(false)
   deletedAt                     DateTime?

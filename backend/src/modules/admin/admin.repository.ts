@@ -1,8 +1,13 @@
 import { IMUTABLE_ROLES } from "../../common/constants/system-roles.js";
 import { AppError } from "../../common/errors/AppError.js";
 import { prisma } from "../../lib/prisma.js";
+import {
+  ensureRoleIsAssignable,
+  ensureRoleIsDeletable,
+  ensureRoleIsEditable,
+} from "./admin.helper.js";
 import { IAdminRepository } from "./admin.interface.js";
-import { UpdateRoleInputType } from "./admin.types.js";
+import { RoleByIdType, UpdateRoleInputType } from "./admin.types.js";
 
 export class AdminRepository implements IAdminRepository {
   async findAllUsers() {
@@ -52,8 +57,9 @@ export class AdminRepository implements IAdminRepository {
       select: {
         id: true,
         name: true,
+        isSystem: true,
         createdAt: true,
-        isDeleted: false,
+        isDeleted: true,
 
         userRoles: {
           select: {
@@ -189,22 +195,13 @@ export class AdminRepository implements IAdminRepository {
 
   async updateRoleWithPermissions(roleId: string, data: UpdateRoleInputType) {
     return prisma.$transaction(async (tx) => {
-      const existingRole = tx.role.findUnique({
-        where: { id: roleId },
-        include: { rolePermissions: true },
-      });
-
-      if (!existingRole) {
-        throw new Error("ROLE_NOT_FOUND");
-      }
-
       if (data.name) {
         const duplicateRole = await tx.role.findFirst({
           where: { name: data.name, NOT: { id: roleId } },
         });
 
         if (duplicateRole) {
-          throw new Error("ROLE_ALREADY_EXIST");
+          throw new AppError("Role already exist", 409);
         }
       }
 
@@ -223,7 +220,7 @@ export class AdminRepository implements IAdminRepository {
         });
 
         if (dbPermissions.length !== data.permissions.length) {
-          throw new Error("INVALID_PERMISSIONS");
+          throw new AppError("Invalid permissions provided", 400);
         }
 
         // Delete the previous permissions mapping
@@ -242,23 +239,14 @@ export class AdminRepository implements IAdminRepository {
     });
   }
 
-  async deleteRoleById(roleId: string) {
+  async deleteRoleById(existingRole: RoleByIdType) {
     return await prisma.$transaction(async (tx) => {
-      const existingRole = await tx.role.findUnique({
-        where: { id: roleId, isDeleted: false },
-        include: { userRoles: true },
-      });
-
-      if (!existingRole) {
-        throw new Error("ROLE_NOT_FOUND");
-      }
-
       if (existingRole.userRoles.length > 0) {
-        throw new Error("ASSIGNED_TO_USERS");
+        throw new AppError("Can't delete already assigned roles.", 400);
       }
 
       const updatedRole = await prisma.role.update({
-        where: { id: roleId },
+        where: { id: existingRole.id },
         data: {
           isDeleted: true,
           deletedAt: new Date(),
@@ -287,6 +275,8 @@ export class AdminRepository implements IAdminRepository {
       if (existingDbRoles.length !== roleIds.length) {
         throw new AppError("Invalid roles provided", 400);
       }
+
+      existingDbRoles.forEach((role) => ensureRoleIsAssignable(role));
 
       const existingAssignments = await tx.userRole.findMany({
         where: {
