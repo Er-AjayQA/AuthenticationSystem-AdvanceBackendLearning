@@ -22,6 +22,9 @@ const envSchema = z.object({
   REFRESH_TOKEN_EXPIRES: z.string(),
   REDIS_URL: z.string(),
   REDIS_PORT: z.coerce.number(),
+  GOOGLE_CLIENT_ID: z.string(),
+  GOOGLE_CLIENT_SECRET: z.string(),
+  GOOGLE_REDIRECT_URI: z.string(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
