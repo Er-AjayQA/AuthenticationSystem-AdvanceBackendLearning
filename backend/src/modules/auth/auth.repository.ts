@@ -1,4 +1,4 @@
-import { Session } from "@prisma/client";
+import { AuthAccount, AuthProvider, Session } from "@prisma/client";
 import { prisma } from "../../lib/prisma.js";
 import { IAuthRepository } from "./auth.interface.js";
 import {
@@ -6,7 +6,6 @@ import {
   CreateUserType,
   updatedSessionType,
 } from "./auth.types.js";
-import { AppError } from "../../common/errors/AppError.js";
 
 export class AuthRepository implements IAuthRepository {
   async findUserByEmail(email: string) {
@@ -79,5 +78,28 @@ export class AuthRepository implements IAuthRepository {
     });
 
     return updatedSession;
+  }
+
+  // OAuth
+  async findAuthAccount(provider: AuthProvider, providerAccountId: string) {
+    const account = await prisma.authAccount.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider,
+          providerAccountId,
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    return account;
+  }
+
+  async createAuthAccount(data: AuthAccount) {
+    return await prisma.authAccount.create({
+      data,
+    });
   }
 }

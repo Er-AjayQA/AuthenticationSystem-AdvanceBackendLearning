@@ -16,6 +16,37 @@ import { permissionsService } from "./auth.permissions.service.js";
 export class AuthService {
   constructor(private authRepo: IAuthRepository) {}
 
+  private async createAuthenticatedSession(
+    userId: string,
+    userAgent?: string,
+    ipAddress?: string,
+  ) {
+    const sessionId = generateSessionId();
+
+    const tokenPayload = {
+      sub: userId,
+      sessionId,
+    };
+
+    const accessToken = signAccessToken(tokenPayload);
+    const refreshToken = signRefreshToken(tokenPayload);
+    const hashedRefreshToken = hashRefreshToken(refreshToken);
+    const expiresAt = new Date(
+      Date.now() + ms(env.REFRESH_TOKEN_EXPIRES as StringValue),
+    );
+
+    await this.authRepo.createSession({
+      id: sessionId,
+      userId: userId,
+      refreshTokenHash: hashedRefreshToken,
+      userAgent: userAgent,
+      ipAddress: ipAddress,
+      expiresAt,
+    });
+
+    return { accessToken, refreshToken };
+  }
+
   async registerUser(data: {
     email: string;
     password: string;
@@ -35,11 +66,15 @@ export class AuthService {
       email,
       passwordHash: hashedPassword,
     };
-    const createdUser = await this.authRepo.createUser(
-      payload as CreateUserType,
+    const newUser = await this.authRepo.createUser(payload as CreateUserType);
+
+    const authSession = await this.createAuthenticatedSession(
+      newUser.id,
+      userAgent,
+      ipAddress,
     );
 
-    return await this.loginUser({ email, password, userAgent, ipAddress });
+    return { user: sanitizeUserResponse(newUser), ...authSession };
   }
 
   async loginUser(data: {
@@ -65,32 +100,15 @@ export class AuthService {
       throw new AppError("Invalid credentials", 401);
     }
 
-    const sessionId = generateSessionId();
-
-    const tokenPayload = {
-      sub: existingUser.id,
-      sessionId,
-    };
-    const accessToken = signAccessToken(tokenPayload);
-    const refreshToken = signRefreshToken(tokenPayload);
-    const hashedRefreshToken = hashRefreshToken(refreshToken);
-    const expiresAt = new Date(
-      Date.now() + ms(env.REFRESH_TOKEN_EXPIRES as StringValue),
+    const authSession = await this.createAuthenticatedSession(
+      existingUser.id,
+      userAgent,
+      ipAddress,
     );
-
-    await this.authRepo.createSession({
-      id: sessionId,
-      userId: existingUser.id,
-      refreshTokenHash: hashedRefreshToken,
-      userAgent: userAgent,
-      ipAddress: ipAddress,
-      expiresAt,
-    });
 
     return {
       user: sanitizeUserResponse(existingUser),
-      accessToken,
-      refreshToken,
+      ...authSession,
     };
   }
 

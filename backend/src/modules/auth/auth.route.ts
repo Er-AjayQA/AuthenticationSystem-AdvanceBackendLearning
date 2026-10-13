@@ -17,12 +17,7 @@ const router = express.Router();
 
 router
   .route("/register-user")
-  .post(
-    authMiddleware,
-    authorizedPermissions(Permissions.MANAGE_USERS),
-    validate(registerUserSchema),
-    registerUserController,
-  );
+  .post(validate(registerUserSchema), registerUserController);
 
 router
   .route("/login-user")

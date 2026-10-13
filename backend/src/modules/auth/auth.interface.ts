@@ -1,4 +1,4 @@
-import { Session, User } from "@prisma/client";
+import { AuthAccount, AuthProvider, Session, User } from "@prisma/client";
 import {
   createSessionType,
   CreateUserType,
@@ -20,4 +20,12 @@ export interface IAuthRepository {
   revokeSessionBySessionId(sessionId: string): Promise<boolean>;
   revokeAllRefreshTokenByUser(userId: string): Promise<boolean>;
   updateSession(sessionId: string, data: updatedSessionType): Promise<any>;
+
+  // OAuth
+  findAuthAccount(
+    provider: AuthProvider,
+    providerAccountId: string,
+  ): Promise<AuthAccount | null>;
+
+  createAuthAccount(data: AuthAccount): Promise<AuthAccount>;
 }
