@@ -1,8 +1,9 @@
-import { Prisma } from "@prisma/client";
+import { AuthProvider, Prisma } from "@prisma/client";
 
 export type CreateUserType = {
   email: string;
-  passwordHash: string;
+  passwordHash: string | null;
+  provider: AuthProvider;
 };
 
 export type createSessionType = {
@@ -54,5 +55,17 @@ export type UserPermissionsType = Prisma.UserGetPayload<{
         };
       };
     };
+  };
+}>;
+
+export type LinkAuthAccountType = {
+  userId: string;
+  providerAccountId: string;
+  provider: AuthProvider;
+};
+
+export type GetAuthAccountType = Prisma.AuthAccountGetPayload<{
+  include: {
+    user: true;
   };
 }>;

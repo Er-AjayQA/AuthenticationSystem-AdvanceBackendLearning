@@ -1,8 +1,16 @@
+import { AuthProvider } from "@prisma/client";
 import { AppError } from "../../../common/errors/AppError.js";
+import { env } from "../../../config/env.config.js";
 import { googleClient } from "../../../lib/google.js";
+import { IAuthRepository } from "../auth.interface.js";
 import { generateOAuthState } from "./oauth.helper.js";
+import { GoogleUserProfile } from "./oauth.schema.js";
+import crypto from "crypto";
+import { sanitizeUserResponse } from "../auth.response.js";
 
 export class GoogleOAuthService {
+  constructor(private authRepo: IAuthRepository) {}
+
   async generateGoogleAuthUrl() {
     const state = generateOAuthState();
 
@@ -22,7 +30,86 @@ export class GoogleOAuthService {
     }
   }
 
+  async exchangeCodeForGoogleUser(code: string): Promise<GoogleUserProfile> {
+    const { tokens } = await googleClient.getToken(code);
+
+    if (!tokens.id_token) {
+      throw new AppError("Google didn't return an ID token", 401);
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    if (!payload) {
+      throw new AppError("Failed to retrieve Google Profile", 401);
+    }
+
+    if (!payload.sub) {
+      throw new AppError("Google Account identifier missing", 401);
+    }
+
+    if (!payload.email) {
+      throw new AppError("Google email missing", 401);
+    }
+
+    return {
+      providerAccountId: payload.sub,
+      email: payload.email,
+      emailVerified: payload.email_verified ?? false,
+      name: payload.name,
+      picture: payload.picture,
+    };
+  }
+
+  async findOrCreateGoogleUser(googleUser: GoogleUserProfile) {
+    const existingAuthAccount = await this.authRepo.findAuthAccount(
+      AuthProvider.GOOGLE,
+      googleUser.providerAccountId,
+    );
+
+    if (existingAuthAccount) {
+      return existingAuthAccount.user;
+    }
+
+    const existingUser = await this.authRepo.findUserByEmail(googleUser.email);
+
+    if (existingUser) {
+      if (!googleUser.emailVerified) {
+        throw new AppError("Google meail is not verified", 401);
+      }
+
+      await this.authRepo.linkAuthAccount({
+        userId: existingUser.id,
+        providerAccountId: googleUser.providerAccountId,
+        provider: AuthProvider.GOOGLE,
+      });
+
+      return existingUser;
+    }
+
+    const user = await this.authRepo.createUser({
+      email: googleUser.email,
+      passwordHash: null,
+      provider: AuthProvider.GOOGLE,
+    });
+
+    await this.authRepo.createAuthAccount({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      provider: AuthProvider.GOOGLE,
+      providerAccountId: googleUser.providerAccountId,
+      createdAt: new Date(),
+    });
+
+    return sanitizeUserResponse(user);
+  }
+
   async handleGoogleCallback(code: string) {
-    return code;
+    const googleUser = await this.exchangeCodeForGoogleUser(code);
+    return googleUser;
   }
 }

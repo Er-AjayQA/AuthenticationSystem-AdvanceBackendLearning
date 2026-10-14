@@ -4,6 +4,7 @@ import { IAuthRepository } from "./auth.interface.js";
 import {
   createSessionType,
   CreateUserType,
+  LinkAuthAccountType,
   updatedSessionType,
 } from "./auth.types.js";
 
@@ -39,7 +40,11 @@ export class AuthRepository implements IAuthRepository {
 
   async createUser(data: CreateUserType) {
     const newUser = await prisma.user.create({
-      data: { email: data.email, passwordHash: data.passwordHash },
+      data: {
+        email: data.email,
+        passwordHash: data.passwordHash,
+        provider: data.provider,
+      },
     });
     return newUser;
   }
@@ -101,5 +106,10 @@ export class AuthRepository implements IAuthRepository {
     return await prisma.authAccount.create({
       data,
     });
+  }
+
+  async linkAuthAccount(data: LinkAuthAccountType) {
+    const authAccount = await prisma.authAccount.create({ data });
+    return authAccount;
   }
 }

@@ -3,6 +3,8 @@ import {
   createSessionType,
   CreateUserType,
   finUserById,
+  GetAuthAccountType,
+  LinkAuthAccountType,
   updatedSessionType,
 } from "./auth.types.js";
 
@@ -25,7 +27,8 @@ export interface IAuthRepository {
   findAuthAccount(
     provider: AuthProvider,
     providerAccountId: string,
-  ): Promise<AuthAccount | null>;
+  ): Promise<GetAuthAccountType | null>;
 
   createAuthAccount(data: AuthAccount): Promise<AuthAccount>;
+  linkAuthAccount(data: LinkAuthAccountType): Promise<AuthAccount>;
 }

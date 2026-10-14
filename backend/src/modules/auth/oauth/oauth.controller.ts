@@ -43,10 +43,12 @@ export const googleCallbackController = CatchAsync(
 
     const result = await googleOAuthService.handleGoogleCallback(code);
 
+    const user = await googleOAuthService.findOrCreateGoogleUser(result);
+
     sendResponse(res, 200, {
       success: true,
       message: "Google callback received successfully",
-      data: result,
+      data: user,
     });
   },
 );
