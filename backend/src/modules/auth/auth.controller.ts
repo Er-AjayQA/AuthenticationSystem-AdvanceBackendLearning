@@ -87,7 +87,7 @@ export const refreshTokenController = CatchAsync(
     sendResponse(res, 201, {
       success: true,
       message: "Refresh token rotated successfully",
-      data: { user: result.user, accessToken: result.accessToken },
+      data: { accessToken: result.accessToken },
     });
   },
 );

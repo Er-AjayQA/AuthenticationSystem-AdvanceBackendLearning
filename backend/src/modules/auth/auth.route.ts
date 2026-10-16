@@ -11,8 +11,6 @@ import {
   registerUserController,
 } from "./auth.controller.js";
 import { authMiddleware } from "../../middleware/auth.middleware.js";
-import { authorizedPermissions } from "../../middleware/authorization.middleware.js";
-import { Permissions } from "../../common/constants/permissions.js";
 const router = express.Router();
 
 router

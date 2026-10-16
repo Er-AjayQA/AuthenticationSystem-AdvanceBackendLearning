@@ -7,9 +7,13 @@ import { generateOAuthState } from "./oauth.helper.js";
 import { GoogleUserProfile } from "./oauth.schema.js";
 import crypto from "crypto";
 import { sanitizeUserResponse } from "../auth.response.js";
+import { AuthService } from "../auth.service.js";
 
 export class GoogleOAuthService {
-  constructor(private authRepo: IAuthRepository) {}
+  constructor(
+    private authRepo: IAuthRepository,
+    private authService: AuthService,
+  ) {}
 
   async generateGoogleAuthUrl() {
     const state = generateOAuthState();
@@ -108,8 +112,24 @@ export class GoogleOAuthService {
     return sanitizeUserResponse(user);
   }
 
-  async handleGoogleCallback(code: string) {
+  async handleGoogleCallback(
+    code: string,
+    userAgent: string,
+    ipAddress: string,
+  ) {
     const googleUser = await this.exchangeCodeForGoogleUser(code);
-    return googleUser;
+    const user = await this.findOrCreateGoogleUser(googleUser);
+
+    const authSession = await this.authService.createAuthenticatedSession(
+      user.id,
+      userAgent,
+      ipAddress,
+    );
+
+    return {
+      user,
+      accessToken: authSession.accessToken,
+      refreshToken: authSession.refreshToken,
+    };
   }
 }

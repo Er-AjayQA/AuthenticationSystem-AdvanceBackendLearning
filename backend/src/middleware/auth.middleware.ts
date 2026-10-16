@@ -27,6 +27,11 @@ export const authMiddleware = CatchAsync(
 
       const payload = verifyAccessToken(accessToken) as JWTPayload;
 
+      console.log("JWT claims:", {
+        userId: payload.sub,
+        sessionId: payload.sessionId,
+      });
+
       const session = await authService.getUserSessionByUserIdAndSessionId(
         payload.sub,
         payload.sessionId,
