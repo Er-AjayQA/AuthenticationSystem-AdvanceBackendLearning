@@ -11,15 +11,22 @@ import {
   registerUserController,
 } from "./auth.controller.js";
 import { authMiddleware } from "../../middleware/auth.middleware.js";
+import { loginRateLimitter } from "../../middleware/rate-limit/login-rate-limit.middleware.js";
+import { registerRateLimiiter } from "../../middleware/rate-limit/register-rate-limit.middleware.js";
+import { refreshTokenRateLimitter } from "../../middleware/rate-limit/refresh-token-rate-limit.middleware.js";
 const router = express.Router();
 
 router
   .route("/register-user")
-  .post(validate(registerUserSchema), registerUserController);
+  .post(
+    registerRateLimiiter,
+    validate(registerUserSchema),
+    registerUserController,
+  );
 
 router
   .route("/login-user")
-  .post(validate(loginUserSchema), loginUserController);
+  .post(loginRateLimitter, validate(loginUserSchema), loginUserController);
 
 router.route("/me").get(authMiddleware, loggedInUserController);
 
@@ -27,7 +34,9 @@ router
   .route("/me/permissions")
   .get(authMiddleware, getMyPersmissionsController);
 
-router.route("/refresh-token").post(refreshTokenController);
+router
+  .route("/refresh-token")
+  .post(refreshTokenRateLimitter, refreshTokenController);
 
 router.route("/logout").post(authMiddleware, logoutController);
 

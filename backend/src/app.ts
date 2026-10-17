@@ -5,6 +5,7 @@ import { env } from "./config/env.config.js";
 import cookieParser from "cookie-parser";
 import { globalErrorHandler } from "./middleware/error.middleware.js";
 import { AppError } from "./common/errors/AppError.js";
+import { globalRateLimiter } from "./middleware/rate-limit/rate-limit.middleware.js";
 
 export const app = express();
 
@@ -33,6 +34,8 @@ app.get("/api/v1/health-check", async (req: Request, res: Response) => {
     timeStamp: Date.now(),
   });
 });
+
+app.use(globalRateLimiter);
 
 import { requestLogger } from "./middleware/request-logger.middleware.js";
 import authRouter from "./modules/auth/auth.route.js";
