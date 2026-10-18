@@ -12,6 +12,7 @@ import { env } from "../../config/env.config.js";
 import { signAccessToken, signRefreshToken } from "../../common/auth/jwt.js";
 import { hashRefreshToken } from "../../common/auth/token.js";
 import { permissionsService } from "./auth.permissions.service.js";
+import { loginLockoutService } from "./security/login-lockout.service.js";
 
 export class AuthService {
   constructor(private authRepo: IAuthRepository) {}
@@ -87,7 +88,12 @@ export class AuthService {
 
     const existingUser = await this.authRepo.findUserByEmail(email);
 
-    if (!existingUser) {
+    if (!existingUser || !existingUser.passwordHash) {
+      await loginLockoutService.recordFailure(
+        email as string,
+        ipAddress as string,
+      );
+
       throw new AppError("Invalid credentials", 401);
     }
 
@@ -97,8 +103,18 @@ export class AuthService {
     );
 
     if (!isPasswordCorrect) {
+      await loginLockoutService.recordFailure(
+        email as string,
+        ipAddress as string,
+      );
+
       throw new AppError("Invalid credentials", 401);
     }
+
+    await loginLockoutService.clearFailures(
+      email as string,
+      ipAddress as string,
+    );
 
     const authSession = await this.createAuthenticatedSession(
       existingUser.id,
@@ -153,10 +169,11 @@ export class AuthService {
       throw new AppError("User not found", 404);
     }
 
-    const hashIncomingToken = hashRefreshToken(refreshToken);
-    const isRefreshTokenValid = hashIncomingToken === session.refreshTokenHash;
+    const incomingTokenHash = hashRefreshToken(refreshToken);
+    const isIncomingRefreshTokenValid =
+      incomingTokenHash === session.refreshTokenHash;
 
-    if (!isRefreshTokenValid) {
+    if (!isIncomingRefreshTokenValid) {
       await this.authRepo.revokeAllRefreshTokenByUser(session.userId);
 
       throw new AppError("Refresh token reuse detected", 401);

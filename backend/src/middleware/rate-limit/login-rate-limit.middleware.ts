@@ -3,8 +3,8 @@ import { RedisStore, RedisReply } from "rate-limit-redis";
 import redis from "../../lib/redis.js";
 
 export const loginRateLimitter = rateLimit({
-  windowMs: 10 * 1000, // Testing only
-  max: 4, // Testing only
+  windowMs: 10 * 60 * 60 * 1000,
+  max: 30,
 
   standardHeaders: true,
   legacyHeaders: false,
