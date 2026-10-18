@@ -13,6 +13,7 @@ import { signAccessToken, signRefreshToken } from "../../common/auth/jwt.js";
 import { hashRefreshToken } from "../../common/auth/token.js";
 import { permissionsService } from "./auth.permissions.service.js";
 import { loginLockoutService } from "./security/login-lockout.service.js";
+import { refreshProtectionService } from "./security/refresh-protection.service.js";
 
 export class AuthService {
   constructor(private authRepo: IAuthRepository) {}
@@ -149,57 +150,68 @@ export class AuthService {
 
     const payload = verifyRefreshToken(refreshToken);
 
-    const session = await this.authRepo.findSessionById(payload.sessionId);
+    await refreshProtectionService.acquireRefreshLock(payload.sessionId);
 
-    if (!session) {
-      throw new AppError("Session not found", 404);
+    try {
+      const session = await this.authRepo.findSessionById(payload.sessionId);
+
+      if (!session) {
+        throw new AppError("Session not found", 404);
+      }
+
+      refreshProtectionService.validateSession({
+        isRevoked: session.isRevoked,
+        isDeleted: session.isDeleted,
+      });
+
+      if (userAgent && session.userAgent && userAgent !== session.userAgent) {
+        refreshProtectionService.logSuspiciousRefresh({
+          userId: session.userId,
+          sessionId: session.id,
+          previousUserAgent: session.userAgent,
+          currentUserAgent: userAgent,
+        });
+      }
+
+      const incomingTokenHash = hashRefreshToken(refreshToken);
+      const isIncomingRefreshTokenValid =
+        incomingTokenHash === session.refreshTokenHash;
+
+      if (!isIncomingRefreshTokenValid) {
+        refreshProtectionService.logRefreshReuse({
+          userId: session.userId,
+          sessionId: session.id,
+        });
+
+        await this.authRepo.revokeAllRefreshTokenByUser(session.userId);
+
+        throw new AppError("Refresh token reuse detected", 401);
+      }
+
+      const tokenPayload = {
+        sub: session.userId,
+        sessionId: session.id,
+      };
+
+      const newAccessToken = signAccessToken(tokenPayload);
+      const newRefreshToken = signRefreshToken(tokenPayload);
+      const hashedRefreshToken = hashRefreshToken(newRefreshToken);
+      const expiresAt = new Date(
+        Date.now() + ms(env.REFRESH_TOKEN_EXPIRES as StringValue),
+      );
+
+      const updatedSession = await this.authRepo.updateSession(session.id, {
+        refreshTokenHash: hashedRefreshToken,
+        expiresAt,
+      });
+
+      return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      };
+    } finally {
+      await refreshProtectionService.releaseRefreshLock(payload.sessionId);
     }
-
-    if (session.isRevoked) {
-      throw new AppError("Session revoked", 401);
-    }
-
-    if (session.expiresAt < new Date()) {
-      throw new AppError("Session expired", 401);
-    }
-
-    const user = await this.authRepo.findUserById(session.userId);
-
-    if (!user) {
-      throw new AppError("User not found", 404);
-    }
-
-    const incomingTokenHash = hashRefreshToken(refreshToken);
-    const isIncomingRefreshTokenValid =
-      incomingTokenHash === session.refreshTokenHash;
-
-    if (!isIncomingRefreshTokenValid) {
-      await this.authRepo.revokeAllRefreshTokenByUser(session.userId);
-
-      throw new AppError("Refresh token reuse detected", 401);
-    }
-
-    const tokenPayload = {
-      sub: session.userId,
-      sessionId: session.id,
-    };
-
-    const newAccessToken = signAccessToken(tokenPayload);
-    const newRefreshToken = signRefreshToken(tokenPayload);
-    const hashedRefreshToken = hashRefreshToken(newRefreshToken);
-    const expiresAt = new Date(
-      Date.now() + ms(env.REFRESH_TOKEN_EXPIRES as StringValue),
-    );
-
-    const updatedSession = await this.authRepo.updateSession(session.id, {
-      refreshTokenHash: hashedRefreshToken,
-      expiresAt,
-    });
-
-    return {
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
-    };
   }
 
   async getUserSessionByUserIdAndSessionId(userId: string, sessionId: string) {

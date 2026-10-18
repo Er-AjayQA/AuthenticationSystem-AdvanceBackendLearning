@@ -47,6 +47,7 @@ model Session {
   userAgent                     String?
   ipAddress                     String?
   expiresAt                     DateTime
+  isDeleted                     Boolean                    @default(false)
   isRevoked                     Boolean                    @default(false)
   revokedAt                     DateTime?
   createAt                      DateTime                   @default(now())
