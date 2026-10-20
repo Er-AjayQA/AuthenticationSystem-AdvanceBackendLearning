@@ -8,7 +8,6 @@ import { useEffect, useRef, useState } from "react";
 const DashboardPage = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [user, setUser] = useState<any | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
   const router = useRouter();
   const initialized = useRef(false);
 

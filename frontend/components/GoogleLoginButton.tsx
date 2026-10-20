@@ -1,7 +1,7 @@
 "use client";
 
 import { getOAuthGoogleUrl } from "@/lib/api";
-import { Button } from "./button";
+import { Button } from "./ui/button";
 
 const GoogleLoginbutton = () => {
   const handleGooglLogin = async () => {
@@ -19,7 +19,7 @@ const GoogleLoginbutton = () => {
       <Button
         variant="ghost"
         size="lg"
-        className="cursor-pointer border border-white p-5"
+        className="w-full cursor-pointer font-medium bg-zinc-900 border border-zinc-700 p-5 transition hover:bg-zinc-800"
         onClick={handleGooglLogin}
       >
         Continue with Google
