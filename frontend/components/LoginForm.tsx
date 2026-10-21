@@ -6,24 +6,50 @@ import { Field, FieldLabel } from "./ui/field";
 import { Input } from "./ui/input";
 import { loginUser } from "@/lib/api";
 import axios from "axios";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string>("");
+  const [showCaptcha, setShowCaptcha] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
+    if (!email.trim() || !password) {
+      setError("Email and password are required");
+      setLoading(false);
+      return;
+    }
+
+    if (showCaptcha && !captchaToken) {
+      setError("Please complete the captcha");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const data = await loginUser({ email, password });
+      const data = await loginUser({ email, password, captchaToken });
       console.log(data);
+      setCaptchaToken("");
+      setShowCaptcha(false);
+      setError("");
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        setError(error?.response?.data?.message || "Login Failed");
+        const message = error?.response?.data?.message || "Login Failed";
+
+        if (message === "Captcha is required") {
+          setShowCaptcha(true);
+          setError("Please complete the captcha");
+          return;
+        }
+
+        setError(message);
       } else {
         setError("Something went wrong");
       }
@@ -59,10 +85,23 @@ const LoginForm = () => {
           />
         </Field>
 
+        {showCaptcha && (
+          <Field>
+            <Turnstile
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+              onSuccess={(token) => setCaptchaToken(token)}
+              onExpire={() => setCaptchaToken("")}
+              onError={() => setCaptchaToken("")}
+            />
+          </Field>
+        )}
+
         {error && <p className="text-sm text-red-500">{error}</p>}
 
         <Field>
-          <Button disabled={loading}>Sign In</Button>
+          <Button variant="ghost" className="cursor-pointer" disabled={loading}>
+            Sign In
+          </Button>
         </Field>
       </form>
     </div>

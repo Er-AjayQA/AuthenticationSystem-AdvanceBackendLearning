@@ -14,7 +14,7 @@ const RegisterForm = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string>("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -35,6 +35,8 @@ const RegisterForm = () => {
         captchaToken,
       });
       console.log(data);
+      setCaptchaToken("");
+      setError("");
     } catch (error) {
       if (axios.isAxiosError(error)) {
         setError(error?.response?.data?.message || "Registration Failed");

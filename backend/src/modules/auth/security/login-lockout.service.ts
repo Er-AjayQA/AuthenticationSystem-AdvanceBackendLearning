@@ -55,12 +55,16 @@ export class LoginLockoutService {
     };
   }
 
-  async requiresCaptcha(email: string, ipAddress: string) {
+  async requiresCaptcha(email: string, ipAddress: string): Promise<boolean> {
     const emailFailures = await redis.get(this.getEmailFailureKey(email));
 
     const pairFailures = await redis.get(
       this.getPairFailureKey(email, ipAddress),
     );
+
+    const emailCount = Number(emailFailures ?? 0);
+    const pairCount = Number(pairFailures ?? 0);
+    return emailCount >= 5 || pairCount >= 5;
   }
 
   async clearFailures(email: string, ip: string) {
@@ -76,16 +80,20 @@ export class LoginLockoutService {
     if (attempts >= 20) return 60 * 60;
     if (attempts >= 15) return 30 * 60;
     if (attempts >= 10) return 15 * 60;
-    if (attempts >= 5) return 5 * 60;
+    if (attempts >= 6) return 5 * 60;
     return 0;
   }
 
+  private normalizeEmail(email: string) {
+    return email.trim().toLowerCase();
+  }
+
   private getPairFailureKey(email: string, ip: string) {
-    return `login_fail:pair:${ip}:${email}`;
+    return `login_fail:pair:${ip}:${this.normalizeEmail(email)}`;
   }
 
   private getEmailFailureKey(email: string) {
-    return `login_fail:email:${email.toLowerCase()}`;
+    return `login_fail:email:${this.normalizeEmail(email)}`;
   }
 
   private getIpFailureKey(ip: string) {
@@ -93,7 +101,7 @@ export class LoginLockoutService {
   }
 
   private getPairLockKey(email: string, ip: string) {
-    return `login_lock:pair:${ip}:${email}`;
+    return `login_lock:pair:${ip}:${this.normalizeEmail(email)}`;
   }
 }
 

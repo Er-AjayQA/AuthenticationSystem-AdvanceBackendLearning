@@ -21,6 +21,7 @@ interface RegisterUserInput {
 interface LoginUserInput {
   email: string;
   password: string;
+  captchaToken?: string;
 }
 
 export async function registerUser(data: RegisterUserInput) {

@@ -89,8 +89,27 @@ export class AuthService {
     password: string;
     userAgent?: string;
     ipAddress?: string;
+    captchaToken?: string;
   }) {
-    const { email, password, userAgent, ipAddress } = data;
+    const { password, userAgent, ipAddress } = data;
+
+    const email = data.email.trim().toLowerCase();
+
+    const requiresCaptcha = await loginLockoutService.requiresCaptcha(
+      email,
+      ipAddress as string,
+    );
+
+    if (requiresCaptcha && !data.captchaToken) {
+      throw new AppError("Captcha is required", 400);
+    }
+
+    if (requiresCaptcha) {
+      await captchaService.verifyTurnstileToken(
+        data.captchaToken ?? "",
+        data.ipAddress,
+      );
+    }
 
     const existingUser = await this.authRepo.findUserByEmail(email);
 
@@ -109,18 +128,11 @@ export class AuthService {
     );
 
     if (!isPasswordCorrect) {
-      await loginLockoutService.recordFailure(
-        email as string,
-        ipAddress as string,
-      );
-
+      await loginLockoutService.recordFailure(email, ipAddress as string);
       throw new AppError("Invalid credentials", 401);
     }
 
-    await loginLockoutService.clearFailures(
-      email as string,
-      ipAddress as string,
-    );
+    await loginLockoutService.clearFailures(email, ipAddress as string);
 
     const authSession = await this.createAuthenticatedSession(
       existingUser.id,
