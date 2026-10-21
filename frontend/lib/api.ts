@@ -15,6 +15,7 @@ interface RegisterUserInput {
   email: string;
   password: string;
   confirmPassword: string;
+  captchaToken: string;
 }
 
 interface LoginUserInput {

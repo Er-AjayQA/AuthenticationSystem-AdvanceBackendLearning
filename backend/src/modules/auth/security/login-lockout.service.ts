@@ -55,6 +55,14 @@ export class LoginLockoutService {
     };
   }
 
+  async requiresCaptcha(email: string, ipAddress: string) {
+    const emailFailures = await redis.get(this.getEmailFailureKey(email));
+
+    const pairFailures = await redis.get(
+      this.getPairFailureKey(email, ipAddress),
+    );
+  }
+
   async clearFailures(email: string, ip: string) {
     await redis.del(
       this.getPairFailureKey(email, ip),
@@ -77,7 +85,7 @@ export class LoginLockoutService {
   }
 
   private getEmailFailureKey(email: string) {
-    return `login_fail:email:${email}`;
+    return `login_fail:email:${email.toLowerCase()}`;
   }
 
   private getIpFailureKey(ip: string) {

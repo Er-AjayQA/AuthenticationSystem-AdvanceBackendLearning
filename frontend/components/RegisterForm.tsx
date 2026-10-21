@@ -6,6 +6,7 @@ import { Field, FieldLabel } from "./ui/field";
 import { Input } from "./ui/input";
 import { registerUser } from "@/lib/api";
 import axios from "axios";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const RegisterForm = () => {
   const [email, setEmail] = useState("");
@@ -13,14 +14,26 @@ const RegisterForm = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
+    if (!captchaToken) {
+      setError("Please complete the captcha");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const data = await registerUser({ email, password, confirmPassword });
+      const data = await registerUser({
+        email,
+        password,
+        confirmPassword,
+        captchaToken,
+      });
       console.log(data);
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -70,10 +83,21 @@ const RegisterForm = () => {
           />
         </Field>
 
+        <Field>
+          <Turnstile
+            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+            onSuccess={(token) => setCaptchaToken(token)}
+            onExpire={() => setCaptchaToken("")}
+            onError={() => setCaptchaToken("")}
+          />
+        </Field>
+
         {error && <p className="text-sm text-red-500">{error}</p>}
 
         <Field>
-          <Button disabled={loading}>Sign Up</Button>
+          <Button variant="ghost" className="cursor-pointer" disabled={loading}>
+            Sign Up
+          </Button>
         </Field>
       </form>
     </div>

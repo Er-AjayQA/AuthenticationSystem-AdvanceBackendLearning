@@ -7,7 +7,7 @@ import { userType } from "./auth.types.js";
 
 export const registerUserController = CatchAsync(
   async (req: Request, res: Response) => {
-    const { email, password } = req.body;
+    const { email, password, captchaToken } = req.body;
     const userAgent = req.headers["user-agent"] || "unknown";
     const ipAddress = req.ip || "unknown";
 
@@ -16,6 +16,7 @@ export const registerUserController = CatchAsync(
       password,
       userAgent,
       ipAddress,
+      captchaToken,
     });
 
     setCookies(res, result.refreshToken);

@@ -23,7 +23,7 @@ const LoginForm = () => {
       console.log(data);
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        setError(error?.response?.data?.message || "Registration Failed");
+        setError(error?.response?.data?.message || "Login Failed");
       } else {
         setError("Something went wrong");
       }
