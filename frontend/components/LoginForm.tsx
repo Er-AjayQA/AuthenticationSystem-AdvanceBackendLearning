@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Field, FieldLabel } from "./ui/field";
 import { Input } from "./ui/input";
 import { loginUser } from "@/lib/api";
 import axios from "axios";
-import { Turnstile } from "@marsidev/react-turnstile";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import { useRouter } from "next/navigation";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -15,6 +16,21 @@ const LoginForm = () => {
   const [error, setError] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string>("");
   const [showCaptcha, setShowCaptcha] = useState<boolean>(false);
+  const captchaRef = useRef<TurnstileInstance>(undefined);
+  const router = useRouter();
+
+  const resetCaptcha = () => {
+    setCaptchaToken("");
+    captchaRef.current?.reset();
+  };
+
+  const resetForm = () => {
+    setEmail("");
+    setPassword("");
+    resetCaptcha();
+    setShowCaptcha(false);
+    setError("");
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,10 +52,13 @@ const LoginForm = () => {
     try {
       const data = await loginUser({ email, password, captchaToken });
       console.log(data);
-      setCaptchaToken("");
-      setShowCaptcha(false);
-      setError("");
+      resetForm();
+      router.push("/dashboard");
     } catch (error) {
+      if (captchaToken) {
+        resetCaptcha();
+      }
+
       if (axios.isAxiosError(error)) {
         const message = error?.response?.data?.message || "Login Failed";
 
@@ -88,6 +107,7 @@ const LoginForm = () => {
         {showCaptcha && (
           <Field>
             <Turnstile
+              ref={captchaRef}
               siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
               onSuccess={(token) => setCaptchaToken(token)}
               onExpire={() => setCaptchaToken("")}

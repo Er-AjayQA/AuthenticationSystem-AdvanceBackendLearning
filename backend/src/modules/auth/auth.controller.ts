@@ -37,7 +37,7 @@ export const loginUserController = CatchAsync(
     const { email, password } = req.body;
     const userAgent = req.headers["user-agent"] || "unknown";
     const ipAddress = req.ip || "unknown";
-    const captchaToken = req.body.captchaToken ?? "";
+    const captchaToken = req.body.captchaToken!;
 
     const result = await authService.loginUser({
       email,

@@ -19,6 +19,8 @@ class CaptchaService {
         formData.append("remoteip", ipAddress);
       }
 
+      console.log("DATA====", token);
+
       const response = await fetch(
         env.CLOUDFLARE_TURNSTILE_TOKEN_VERIFICATION_URL,
         {

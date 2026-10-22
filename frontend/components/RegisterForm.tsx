@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Field, FieldLabel } from "./ui/field";
 import { Input } from "./ui/input";
 import { registerUser } from "@/lib/api";
 import axios from "axios";
-import { Turnstile } from "@marsidev/react-turnstile";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 const RegisterForm = () => {
   const [email, setEmail] = useState("");
@@ -15,6 +15,20 @@ const RegisterForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string>("");
+  const captchaRef = useRef<TurnstileInstance>(undefined);
+
+  const resetCaptcha = () => {
+    setCaptchaToken("");
+    captchaRef.current?.reset();
+  };
+
+  const resetForm = () => {
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+    resetCaptcha();
+    setError("");
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -35,9 +49,12 @@ const RegisterForm = () => {
         captchaToken,
       });
       console.log(data);
-      setCaptchaToken("");
-      setError("");
+      resetForm();
     } catch (error) {
+      if (captchaToken) {
+        resetCaptcha();
+      }
+
       if (axios.isAxiosError(error)) {
         setError(error?.response?.data?.message || "Registration Failed");
       } else {
@@ -87,6 +104,7 @@ const RegisterForm = () => {
 
         <Field>
           <Turnstile
+            ref={captchaRef}
             siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
             onSuccess={(token) => setCaptchaToken(token)}
             onExpire={() => setCaptchaToken("")}

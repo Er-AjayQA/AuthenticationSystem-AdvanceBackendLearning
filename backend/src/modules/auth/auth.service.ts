@@ -101,12 +101,12 @@ export class AuthService {
     );
 
     if (requiresCaptcha && !data.captchaToken) {
-      throw new AppError("Captcha is required", 400);
+      throw new AppError("Captcha is required", 403);
     }
 
     if (requiresCaptcha) {
       await captchaService.verifyTurnstileToken(
-        data.captchaToken ?? "",
+        data.captchaToken!,
         data.ipAddress,
       );
     }

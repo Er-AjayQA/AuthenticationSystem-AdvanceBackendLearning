@@ -28,6 +28,7 @@ export async function registerUser(data: RegisterUserInput) {
   const response = await axios.post(
     `${BACKEND_URL}/api/v1/auth/register-user`,
     data,
+    { withCredentials: true },
   );
 
   return response.data;
@@ -37,6 +38,7 @@ export async function loginUser(data: LoginUserInput) {
   const response = await axios.post(
     `${BACKEND_URL}/api/v1/auth/login-user`,
     data,
+    { withCredentials: true },
   );
 
   return response.data;
